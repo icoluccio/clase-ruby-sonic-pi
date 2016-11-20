@@ -37,36 +37,38 @@ class Volumen
   end
 end
 
+
+
+
+class Bateria
+  attr_accessor :percusiones
+  def initialize(percusiones)
+    self.percusiones = percusiones
+  end
+  def tocar(cancion)
+    puts "1"
+    percusiones.each do |percusion|
+      percusion.tocar(cancion)
+    end
+  end
+end
+
+
 class Percusion
-  attr_accessor :sonido, :amps, :nombre, :prendido
-  def initialize(nombre, sonido, amps, prendido = true)
-    self.nombre = nombre
+  attr_accessor :sonido, :amps, :nombre
+  def initialize( sonido, amps)
     self.sonido = sonido
     self.amps = amps
-    self.prendido = prendido
   end
   
   def tocar(cancion)
     cancion.sample sonido, amp: proxima_amp
   end
   
-  def tiempo
-    :quarter_tick
-  end
-  
   def proxima_amp
-    return 0 unless prendido
-    amps.ring.tick * Volumen.obtenerVolumen(self)
+    amps.ring.tick(sonido.to_s) * Volumen.obtenerVolumen(self)
   end
 end
-
-class PercusionAlAzar < Percusion
-  def proxima_amp
-    return 0 unless prendido
-    rand(10)
-  end
-end
-
 
 class Instrumento
   attr_accessor :melodia, :sonido
@@ -87,7 +89,6 @@ class Instrumento
   def obtener_volumen
     Volumen.obtenerVolumen(self)
   end
-  
 end
 
 

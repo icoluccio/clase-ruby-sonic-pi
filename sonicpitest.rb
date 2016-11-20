@@ -1,10 +1,11 @@
 time = 0.22
 
-kick = Percusion.new(:kick, "C:/Users/Pedro Soto/Desktop/kick.wav", [3, 0, 0, 0], true)
-##| kick = Percusion.new(:kick, "C:/Users/Pedro Soto/Desktop/kick.wav", [3, 0, 0, 0, 0, 0, 2, 0, 0, 3, 0, 3, 0, 0, 0, 2], true)
-hihat = Percusion.new(:hihat, "C:/Users/Pedro Soto/Desktop/hat.wav", [0.5, 0.6, 0.8, 0.8], true)
-snare = Percusion.new(:snare, "C:/Users/Pedro Soto/Desktop/snare.wav", [0, 0, 0, 0, 1, 0 , 0 ,0, 0, 0, 0, 0, 1, 0 , 0 ,0], true)
-percusiones = [kick, hihat, snare]
+
+kick = Percusion.new("C:/Users/Pedro Soto/Desktop/kick.wav", [1, 0, 0, 0])
+hihat = Percusion.new("C:/Users/Pedro Soto/Desktop/hat.wav", [0, 0.6, 0.7, 0.6])
+snare = Percusion.new("C:/Users/Pedro Soto/Desktop/snare.wav", [0, 0, 0, 0, 1, 0, 0, 0])
+bateria = Bateria.new([kick, hihat, snare])
+
 bajo = Bajo.new([nil, 53, 53, 53] * 4 + [nil, 55, 55, 55] * 4 + [nil, 50, 50, 50] * 8 +
                 [nil, 53, 53, 53] * 4 + [nil, 55, 55, 55] * 4 + [nil, 50, 50, 50] * 8 +
                 [nil, 48, 48, 48] * 4 + [nil, 47, 47, 47] * 4 + [nil, 57, 57, 57] * 4 +  [nil, 50, 50, 50] * 4, :dpulse)
@@ -27,11 +28,9 @@ amen = Amen.new(2)
 
 
 
-Volumen.cambiarVolumen(kick, 0)
-Volumen.cambiarVolumen(hihat, 0)
-Volumen.cambiarVolumen(snare, 0)
-Volumen.cambiarVolumen(bajo, 1)
-Volumen.cambiarVolumen(lead, 1)
+Volumen.cambiarVolumen(bateria, 1)
+Volumen.cambiarVolumen(bajo, 0)
+Volumen.cambiarVolumen(lead, 0)
 Volumen.cambiarVolumen(lead2, 0)
 Volumen.cambiarVolumen(acordes, 0)
 Volumen.cambiarVolumen(amen, 0)
@@ -43,16 +42,13 @@ end
 
 sync :complete
 
-percusiones.each do |percusion|
-  live_loop (percusion.nombre) do
-    sync :quarter_tick
-    percusion.tocar(self)
-  end
-end
-
 live_loop :bass do
   sync :quarter_tick
   bajo.tocar(self)
+end
+live_loop :bateria do
+  sync :quarter_tick
+  bateria.tocar(self)
 end
 
 live_loop :lead do
