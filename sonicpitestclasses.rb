@@ -1,38 +1,42 @@
 
 
-class Sync
-  attr_accessor :song
-  def initialize(song)
-    self.song = song
+class Sincronizador
+  attr_accessor :cancion
+  def initialize(cancion)
+    self.cancion = cancion
   end
-  
-  def sync
+
+  def sincronizar
     time = 0.2
-    cues = [[:quarter_tick, :half_tick, :tick],
-            [:quarter_tick],
-            [:half_tick, :quarter_tick],
-            [:quarter_tick],
-            [:half_tick, :quarter_tick],
-            [:quarter_tick],
-            [:quarter_tick, :half_tick, :tick],
-            [:quarter_tick],
-            [:half_tick, :quarter_tick],
-            [:quarter_tick],
-            [:half_tick, :quarter_tick],
-            [:quarter_tick, :complete]].ring.tick
-    cues.map { |c| song.cue c }
-    song.sleep time
+    cues = [[:semicorchea, :corchea, :negra],
+            [:semicorchea],
+            [:corchea, :semicorchea],
+            [:semicorchea],
+            [:semicorchea, :corchea, :negra],
+            [:semicorchea],
+            [:corchea, :semicorchea],
+            [:semicorchea],
+            [:semicorchea, :corchea, :negra],
+            [:semicorchea],
+            [:corchea, :semicorchea],
+            [:semicorchea],
+            [:semicorchea, :corchea, :negra],
+            [:semicorchea],
+            [:corchea, :semicorchea],
+            [:semicorchea, :completo]].ring.tick
+    cues.map { |c| cancion.cue c }
+    cancion.sleep time
   end
 end
 
 class Volumen
   @@volumenes = {}
-  def self.cambiarVolumen(algo, volumen)
-    @@volumenes[algo] = volumen
+  def self.cambiarVolumen(instrumento, volumen)
+    @@volumenes[instrumento] = volumen
   end
-  
-  def self.obtenerVolumen(algo)
-    return @@volumenes[algo] if !@@volumenes[algo].nil?
+
+  def self.obtenerVolumen(instrumento)
+    return @@volumenes[instrumento] if !@@volumenes[instrumento].nil?
     1
   end
 end
@@ -45,10 +49,10 @@ class Bateria
   def initialize(percusiones)
     self.percusiones = percusiones
   end
-  def tocar(cancion)
-    puts "1"
+
+  def sonar(cancion)
     percusiones.each do |percusion|
-      percusion.tocar(cancion)
+      percusion.sonar(cancion)
     end
   end
 end
@@ -60,11 +64,11 @@ class Percusion
     self.sonido = sonido
     self.amps = amps
   end
-  
-  def tocar(cancion)
+
+  def sonar(cancion)
     cancion.sample sonido, amp: proxima_amp
   end
-  
+
   def proxima_amp
     amps.ring.tick(sonido.to_s) * Volumen.obtenerVolumen(self)
   end
@@ -76,16 +80,16 @@ class Instrumento
     self.melodia = melodia
     self.sonido = sonido
   end
-  
+
   def proxima_nota
     melodia.ring.tick
   end
-  
-  def tocar(cancion)
+
+  def sonar(cancion)
     cancion.use_synth sonido
     hacer_sonido(cancion)
   end
-  
+
   def obtener_volumen
     Volumen.obtenerVolumen(self)
   end
@@ -95,17 +99,17 @@ end
 class Bajo < Instrumento
   def hacer_sonido(cancion)
     cancion.with_fx :distortion, mix:0.5, distort:0.9 do
-      note = proxima_nota
-      cancion.play [note - 12, note -24, note], release: 0.6, release: 0.2, amp: obtener_volumen if note
+      nota = proxima_nota
+      cancion.play [nota - 12, nota -24, nota], release: 0.6, release: 0.2, amp: obtener_volumen if nota
     end
   end
 end
 
-class Lead < Instrumento
+class Lider < Instrumento
   def hacer_sonido(cancion)
     cancion.with_fx :echo, mix:0.3 do
-      note = proxima_nota
-      cancion.play [note, note+12, note-12], release: 0.2, attack: 0.02, sustain: 0.1, amp: obtener_volumen
+      nota = proxima_nota
+      cancion.play [nota, nota+12, nota-12], release: 0.2, attack: 0.02, sustain: 0.1, amp: obtener_volumen
     end
   end
 end
@@ -114,11 +118,11 @@ class Acordes < Instrumento
   def hacer_sonido(cancion)
     cancion.with_fx :echo, mix:0.5 do
       cancion.with_fx :reverb, mix:0.3 do
-        note = proxima_nota
-        cancion.play [note, note+7, note+12], release: 0.4, amp: obtener_volumen if cancion.one_in(2)
+        nota = proxima_nota
+        cancion.play [nota, nota+7, nota+12], release: 0.4, amp: obtener_volumen if cancion.one_in(2)
       end
     end
-    
+
     def proxima_nota
       melodia.sample
     end
@@ -131,17 +135,17 @@ class Amen < Instrumento
   def initialize(velocidad = 2)
     self.velocidad = velocidad
   end
-  def tocar(cancion)
-    cancion.sync :quarter_tick
+  def sonar(cancion)
+    cancion.sync :semicorchea
     cancion.with_fx :distortion do
-      note_amount = rand(1.5).round + velocidad
-      notes = []
-      note_amount.times do
-        notes.push([0,5,11,12, 12].sample)
+      cantidad_de_notas = rand(1.5).round + velocidad
+      notas = []
+      cantidad_de_notas.times do
+        notas.push([0,5,11,12, 12].sample)
       end
-      notes.uniq.map { |note|
-        cancion.sample :loop_amen, onset: note, amp: obtener_volumen
-        cancion.sleep 0.2/notes.size
+      notas.uniq.map { |nota|
+        cancion.sample :loop_amen, onset: nota, amp: obtener_volumen
+        cancion.sleep 0.2/notas.size
       }
     end
   end
