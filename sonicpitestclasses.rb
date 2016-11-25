@@ -1,13 +1,11 @@
-
-
 class Sincronizador
-  attr_accessor :cancion
-  def initialize(cancion)
+  attr_accessor :cancion, :tiempo
+  def initialize(cancion, tiempo)
     self.cancion = cancion
+    self.tiempo = tiempo
   end
 
   def sincronizar
-    time = 0.2
     cues = [[:semicorchea, :corchea, :negra],
             [:semicorchea],
             [:corchea, :semicorchea],
@@ -25,7 +23,7 @@ class Sincronizador
             [:corchea, :semicorchea],
             [:semicorchea, :completo]].ring.tick
     cues.map { |c| cancion.cue c }
-    cancion.sleep time
+    cancion.sleep tiempo
   end
 end
 
@@ -36,8 +34,8 @@ class Volumen
   end
 
   def self.obtenerVolumen(instrumento)
-    return @@volumenes[instrumento] if !@@volumenes[instrumento].nil?
-    1
+    return @@volumenes[instrumento] unless @@volumenes[instrumento].nil?
+    0
   end
 end
 
@@ -59,18 +57,18 @@ end
 
 
 class Percusion
-  attr_accessor :sonido, :amps, :nombre
-  def initialize( sonido, amps)
+  attr_accessor :sonido, :fuerzas, :nombre
+  def initialize( sonido, fuerzas)
     self.sonido = sonido
-    self.amps = amps
+    self.fuerzas = fuerzas
   end
 
   def sonar(cancion)
-    cancion.sample sonido, amp: proxima_amp
+    cancion.sample sonido, amp: proxima_fuerza
   end
 
-  def proxima_amp
-    amps.ring.tick(sonido.to_s) * Volumen.obtenerVolumen(self)
+  def proxima_fuerza
+    fuerzas.ring.tick(sonido.to_s) * Volumen.obtenerVolumen(self)
   end
 end
 
@@ -82,62 +80,89 @@ class Instrumento
   end
 
   def proxima_nota
-    melodia.ring.tick
+    melodia.ring.tick self.class.to_s
   end
 
   def sonar(cancion)
     cancion.use_synth sonido
-    hacer_sonido(cancion)
+    cancion.with_fx efecto, mix:nivel_de_efecto do
+      hacer_sonido(cancion, proxima_nota)
+    end
   end
 
   def obtener_volumen
     Volumen.obtenerVolumen(self)
   end
+
+  def efecto
+    :distortion
+  end
+
+  def nivel_de_efecto
+    0
+  end
+
+  def hacer_sonido(cancion)
+    raise 'Implementá esto'
+  end
 end
 
 
 class Bajo < Instrumento
-  def hacer_sonido(cancion)
-    cancion.with_fx :distortion, mix:0.5, distort:0.9 do
-      nota = proxima_nota
-      cancion.play [nota - 12, nota -24, nota], release: 0.6, release: 0.2, amp: obtener_volumen if nota
-    end
+  def nivel_de_efecto
+    0.6
+  end
+
+  def notas_a_tocar
+    nota = proxima_nota
+    [nota - 12, nota -24, nota]
+  end
+
+  def hacer_sonido(cancion, nota)
+    cancion.play [nota - 12, nota -24, nota], release: 0.6, release: 0.2, amp: obtener_volumen
   end
 end
 
 class Lider < Instrumento
-  def hacer_sonido(cancion)
-    cancion.with_fx :echo, mix:0.3 do
-      nota = proxima_nota
-      cancion.play [nota, nota+12, nota-12], release: 0.2, attack: 0.02, sustain: 0.1, amp: obtener_volumen
-    end
+  def efecto
+    :echo
+  end
+
+  def nivel_de_efecto
+    0.5
+  end
+
+  def hacer_sonido(cancion, nota)
+    cancion.play [nota, nota+12, nota-12], release: 0.2, attack: 0.02, sustain: 0.1, amp: obtener_volumen
   end
 end
 
 class Acordes < Instrumento
-  def hacer_sonido(cancion)
-    cancion.with_fx :echo, mix:0.5 do
-      cancion.with_fx :reverb, mix:0.3 do
-        nota = proxima_nota
-        cancion.play [nota, nota+7, nota+12], release: 0.4, amp: obtener_volumen if cancion.one_in(2)
-      end
-    end
+  def efecto
+    :echo
+  end
 
-    def proxima_nota
-      melodia.sample
-    end
+  def nivel_de_efecto
+    rand(0.5)
+  end
+
+  def hacer_sonido(cancion, nota)
+    cancion.play [nota, nota+7, nota+12], release: 0.4, amp: obtener_volumen if cancion.one_in(2)
+  end
+
+  def proxima_nota
+    melodia.sample
   end
 end
-
 
 class Amen < Instrumento
   attr_accessor :velocidad
   def initialize(velocidad = 2)
     self.velocidad = velocidad
   end
+
   def sonar(cancion)
     cancion.sync :semicorchea
-    cancion.with_fx :distortion do
       cantidad_de_notas = rand(1.5).round + velocidad
       notas = []
       cantidad_de_notas.times do
@@ -147,6 +172,5 @@ class Amen < Instrumento
         cancion.sample :loop_amen, onset: nota, amp: obtener_volumen
         cancion.sleep 0.2/notas.size
       }
-    end
   end
 end
